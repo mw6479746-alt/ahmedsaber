@@ -1,6 +1,6 @@
 const CATALOG={
- "brand": "PROTEIN & COSMETICS",
- "whatsapp": "201021602774",
+ "brand": "Ahmed Saber Cosmetics",
+ "whatsapp": "201002515477",
  "sections": [
   {
    "name": "البروتينات",
