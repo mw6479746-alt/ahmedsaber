@@ -4,7 +4,7 @@
 <style>
 :root{--ink:#111;--gold:#f5c400;--line:#e5e5df;--mut:#6b6b66}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f5f2;color:var(--ink);padding:0 0 130px}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#f5f5f2;color:var(--ink);padding:0 0 200px}
 header{background:var(--ink);color:var(--gold);padding:calc(14px + env(safe-area-inset-top)) 14px 12px;font-weight:700;font-size:18px;position:sticky;top:0;z-index:5}
 header small{display:block;color:#bbb;font-weight:400;font-size:12px;margin-top:2px}
 .box{background:#fff;border:1px solid var(--line);border-radius:14px;margin:12px;padding:12px}
@@ -26,8 +26,13 @@ textarea{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:
 <div class="box"><div style="font-size:13px;color:#6b6b66;margin-bottom:6px">اسم الكتالوج (بيظهر فوق وفي رسالة الطلب)</div><input id="br"></div>
 <div class="box"><div class="top"><input id="ns" placeholder="اسم قسم جديد"><button class="g" data-a="addsec">+ قسم</button></div></div>
 <div class="box"><div style="font-size:13px;color:#6b6b66;margin-bottom:6px">نقل الصور القديمة لملفات (مرة واحدة بس)</div><button class="g" style="width:100%" onclick="migrate()">حمّل الصور القديمة</button><div id="mr" style="font-size:13px;color:#6b6b66;margin-top:6px;line-height:1.7"></div></div>
+<details class="box" id="ghbox" open><summary style="font-weight:700;cursor:pointer">⚙️ إعدادات النشر (مرة واحدة)</summary>
+<div style="font-size:13px;color:#6b6b66;margin:8px 0 6px;line-height:1.6">اسم المشروع على GitHub بالشكل: حساب/مشروع. والمفتاح (Token) بيديهولك صاحب الكتالوج.</div>
+<input id="ghr" dir="ltr" placeholder="account/project" autocomplete="off" style="margin-bottom:6px">
+<input id="ght" dir="ltr" type="password" placeholder="المفتاح (Token)" autocomplete="off">
+</details>
 <div id="m"></div>
-<div class="ft"><p id="st"></p><div class="b"><button class="g" data-a="dl" data-f="p">⬇️ products.js</button><button class="g" onclick="dlImgs()">⬇️ الصور <span id="ic"></span></button></div></div>
+<div class="ft"><p id="st"></p><div id="ghs" style="font-size:13px;line-height:1.6;margin-bottom:6px;color:#6b6b66"></div><button id="pubb" class="g" style="width:100%;margin-bottom:8px" onclick="publish()">🚀 نشر التعديلات</button><div class="b"><button class="g" data-a="dl" data-f="p">⬇️ products.js</button><button class="g" onclick="dlImgs()">⬇️ الصور <span id="ic"></span></button></div></div>
 <script src="products.js"></script>
 <script src="thumbs.js" onerror="void 0"></script>
 <script>
@@ -87,5 +92,48 @@ var _st=st;st=function(){_st();var ic=document.getElementById('ic');if(ic)ic.tex
 function dlT(){var u=used(),m={};Object.keys(T).forEach(function(k){if(u[k])m[k]=T[k]});var b=new Blob(['var IMGT='+JSON.stringify(m)+';\n'],{type:'text/javascript'}),l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='thumbs.js';document.body.appendChild(l);l.click();l.remove()}
 function dlImgs(){var ks=pend();if(!ks.length){alert('مفيش صور جديدة للتنزيل');return}var i=0;(function nx(){if(i>=ks.length){dlT();return}var k=ks[i++],l=document.createElement('a');l.href=I[k];l.download='img-'+k+'.jpg';document.body.appendChild(l);l.click();l.remove();DL[k]=1;st();setTimeout(nx,500)})()}
 function migrate(){var o=document.getElementById('mr');o.textContent='جاري التحميل…';fetch('images.js',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){var L=(new Function(t+';return IMGS'))(),n=0;Object.keys(L).forEach(function(k){if(!I[k]&&!ORIG[k]){I[k]=L[k];n++}});o.textContent='اتحمّلت '+n+' صورة. دوس "⬇️ الصور" تحت، وارفع الملفات اللي هتنزل (img-...jpg) على GitHub.';render()}).catch(function(){o.textContent='مفيش صور قديمة تتنقل (ملف images.js مش موجود).'})}
+
+/* ===== النشر المباشر على GitHub (من غير تنزيل ولا رفع ملفات) ===== */
+var GHK='gh:'+(location.pathname.split('/')[1]||'root')+':',GHR='',GHT='';
+function ghGet(k){try{return localStorage.getItem(GHK+k)||''}catch(e){return ''}}
+function ghSet(k,v){try{localStorage.setItem(GHK+k,v)}catch(e){}}
+(function(){var r=document.getElementById('ghr'),t=document.getElementById('ght');
+  r.value=ghGet('repo')||(location.hostname.split('.')[0]+'/'+(location.pathname.split('/')[1]||''));
+  t.value=ghGet('tok');
+  r.oninput=function(){ghSet('repo',r.value.trim())};t.oninput=function(){ghSet('tok',t.value.trim())};
+  if(ghGet('tok'))document.getElementById('ghbox').open=false})();
+function ghMsg(t,ok){var s=document.getElementById('ghs');s.textContent=t;s.style.color=ok===true?'#1a7f37':ok===false?'#c0392b':'#6b6b66'}
+async function gh(m,p,b){
+  var r;try{r=await fetch('https://api.github.com/repos/'+GHR+p,{method:m,headers:{'Authorization':'Bearer '+GHT,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},body:b?JSON.stringify(b):undefined})}catch(e){throw new Error('النت مقطوع أو GitHub مش بيرد')}
+  if(!r.ok){var d='';try{d=(await r.json()).message||''}catch(e){}
+    if(r.status===401)throw new Error('المفتاح غير صحيح أو انتهت صلاحيته. اطلب مفتاح جديد من صاحب الكتالوج.');
+    if(r.status===403||r.status===404)throw new Error('المفتاح مالوش صلاحية على المشروع ده، أو اسم المشروع غلط ('+GHR+')');
+    throw new Error('خطأ من GitHub ('+r.status+'): '+d)}
+  return r.json()}
+async function publish(){
+  GHR=ghGet('repo').trim();GHT=ghGet('tok').trim();
+  if(!/^[\w.-]+\/[\w.-]+$/.test(GHR)||!GHT){document.getElementById('ghbox').open=true;ghMsg('اكتب اسم المشروع والمفتاح في إعدادات النشر الأول',false);return}
+  var bad=0,zero=0;S.sections.forEach(function(s){s.items.forEach(function(x){if(!x.name.trim())bad++;(x.parts||[]).forEach(function(q){if(!(q.n||'').trim())bad++});(x.variants||[]).forEach(function(v){if(!(v.n||'').trim())bad++});if(!x.price)zero++})});
+  if(bad){ghMsg('فيه '+bad+' منتج من غير اسم. اكتب الاسم أو احذفه.',false);return}
+  if(zero&&!confirm(zero+' منتج سعره صفر. تكمل؟'))return;
+  var btn=document.getElementById('pubb');btn.disabled=true;
+  try{
+    ghMsg('بتأكد من المفتاح…');
+    var repo=await gh('GET','');
+    if(repo.permissions&&repo.permissions.push===false)throw new Error('المفتاح للقراءة بس. لازم صلاحية Contents: Read and write');
+    var br=repo.default_branch,ref=await gh('GET','/git/ref/heads/'+br),cs=ref.object.sha,cm=await gh('GET','/git/commits/'+cs);
+    var nw=Date.now();S.sections.forEach(function(s){s.items.forEach(function(x){if(FRESH[x.id]&&!x.added)x.added=nw})});
+    var imgs=pend(),tree=[];
+    for(var i=0;i<imgs.length;i++){ghMsg('رفع الصور '+(i+1)+' / '+imgs.length+'…');var bl=await gh('POST','/git/blobs',{content:I[imgs[i]].split(',')[1],encoding:'base64'});tree.push({path:'img-'+imgs[i]+'.jpg',mode:'100644',type:'blob',sha:bl.sha})}
+    ghMsg('رفع بيانات الكتالوج…');
+    var u=used(),m={};Object.keys(T).forEach(function(k){if(u[k])m[k]=T[k]});
+    var th=await gh('POST','/git/blobs',{content:'var IMGT='+JSON.stringify(m)+';\n',encoding:'utf-8'});tree.push({path:'thumbs.js',mode:'100644',type:'blob',sha:th.sha});
+    var pj=await gh('POST','/git/blobs',{content:build().p,encoding:'utf-8'});tree.push({path:'products.js',mode:'100644',type:'blob',sha:pj.sha});
+    var nt=await gh('POST','/git/trees',{base_tree:cm.tree.sha,tree:tree}),nc=await gh('POST','/git/commits',{message:'تحديث الكتالوج',tree:nt.sha,parents:[cs]});
+    await gh('PATCH','/git/refs/heads/'+br,{sha:nc.sha});
+    imgs.forEach(function(k){DL[k]=1});dirty=false;st();
+    ghMsg('✅ تم النشر. التحديث بيظهر للعملاء بعد دقيقة تقريباً.',true)
+  }catch(e){ghMsg('❌ '+e.message,false)}
+  btn.disabled=false}
 render();
 </script></body></html>
